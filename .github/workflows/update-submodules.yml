@@ -1,31 +1,48 @@
-name: Update Submodules
+name: Sync Repos
 
 on:
   push:
-    paths:
-      - "frontend-repo/**"
-      - "backend-repo/**"
+    branches:
+      - main
 
 jobs:
-  update-submodules:
+  sync-repos:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout fullstack-repo
         uses: actions/checkout@v2
         with:
-          submodules: true
+          repository: MohammadOsseily/fullstack-repo
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          path: fullstack-repo
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Checkout frontend-repo
+        uses: actions/checkout@v2
         with:
-          python-version: "3.x"
+          repository: MohammadOsseily/frontend-repo
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          path: fullstack-repo/frontend-repo
 
-      - name: Update Submodules
+      - name: Checkout backend-repo
+        uses: actions/checkout@v2
+        with:
+          repository: MohammadOsseily/backend-repo
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          path: fullstack-repo/backend-repo
+
+      - name: Sync frontend-repo to fullstack-repo
         run: |
-          git submodule update --remote
-          git add .
-          git commit -m "Update submodules"
-          git push origin master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          rsync -av --exclude='.git' fullstack-repo/frontend-repo/ fullstack-repo/frontend-repo/
+          cd fullstack-repo
+          git add frontend-repo
+          git commit -m "Update frontend-repo" || echo "No changes to commit"
+          git push origin main
+
+      - name: Sync backend-repo to fullstack-repo
+        run: |
+          rsync -av --exclude='.git' fullstack-repo/backend-repo/ fullstack-repo/backend-repo/
+          cd fullstack-repo
+          git add backend-repo
+          git commit -m "Update backend-repo" || echo "No changes to commit"
+          git push origin main
